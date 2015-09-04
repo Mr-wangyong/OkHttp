@@ -10,6 +10,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonParseException;
 import com.google.gson.internal.$Gson$Types;
 import com.squareup.okhttp.Call;
 import com.squareup.okhttp.Callback;
@@ -84,6 +85,8 @@ public class OkHttpClientManager {
         mGson = new Gson();
 
         /*just for test !!!*/
+        //设置验证用于确认响应证书申请要求HTTPS连接的主机名。
+        //如果没有设置，将使用默认的主机名验证。
         mOkHttpClient.setHostnameVerifier(new HostnameVerifier() {
             @Override
             public boolean verify(String hostname, SSLSession session) {
@@ -93,6 +96,10 @@ public class OkHttpClientManager {
 
     }
 
+    /**
+     * 单例模式创建对象
+     * @return 对象
+     */
     public static OkHttpClientManager getInstance() {
         if (mInstance == null) {
             synchronized (OkHttpClientManager.class) {
@@ -104,6 +111,9 @@ public class OkHttpClientManager {
         return mInstance;
     }
 
+    /**
+     * 创建Get代表
+     */
     public GetDelegate getGetDelegate() {
         return mGetDelegate;
     }
@@ -216,11 +226,15 @@ public class OkHttpClientManager {
         return res;
     }
 
+    /**
+     * 传递结果
+     */
     private void deliveryResult(ResultCallback callback, Request request) {
         if (callback == null) callback = DEFAULT_RESULT_CALLBACK;
         final ResultCallback resCallBack = callback;
         //UI thread
         callback.onBefore(request);
+        //执行异步任务
         mOkHttpClient.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(final Request request, final IOException e) {
@@ -228,7 +242,7 @@ public class OkHttpClientManager {
             }
 
             @Override
-            public void onResponse(final Response response) {
+            public void onResponse(final Response response) {//在子线程中
                 try {
                     final String string = response.body().string();
                     if (resCallBack.mType == String.class) {
@@ -239,9 +253,7 @@ public class OkHttpClientManager {
                     }
 
 
-                } catch (IOException e) {
-                    sendFailedStringCallback(response.request(), e, resCallBack);
-                } catch (com.google.gson.JsonParseException e){//Json解析的错误
+                } catch (IOException | JsonParseException e) {
                     sendFailedStringCallback(response.request(), e, resCallBack);
                 }
 
@@ -249,6 +261,9 @@ public class OkHttpClientManager {
         });
     }
 
+    /**
+     * 发送错误的callbakc
+     */
     private void sendFailedStringCallback(final Request request, final Exception e, final ResultCallback callback) {
         mDelivery.post(new Runnable() {
             @Override
@@ -540,9 +555,14 @@ public class OkHttpClientManager {
 
     }
 
-    //====================GetDelegate=======================
+    //====================GetDelegate======================= Get请求代表
     public class GetDelegate {
-
+        /**
+         * 构建Get方式的Request对象
+         * @param url 地址
+         * @param tag tag
+         * @return request对象
+         */
         private Request buildGetRequest(String url, Object tag) {
             Request.Builder builder = new Request.Builder()
                     .url(url);

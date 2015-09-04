@@ -14,6 +14,7 @@ import com.mr.wang.okhttp.R;
 import com.squareup.okhttp.Request;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity
@@ -167,8 +168,18 @@ public class MainActivity extends AppCompatActivity
 
         if (!file.exists())
         {
-            Toast.makeText(MainActivity.this, "文件不存在，请修改文件路径", Toast.LENGTH_SHORT).show();
-            return;
+
+            try {
+                boolean newFile = file.createNewFile();
+                if (newFile){
+                    Toast.makeText(MainActivity.this, "文件创建成功", Toast.LENGTH_SHORT).show();
+                }else{
+                    return;
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                return;
+            }
         }
 
         OkHttpClientManager.getUploadDelegate()
